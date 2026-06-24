@@ -77,6 +77,7 @@ Expected output: `FR24 Link: connected [UDP]` and `Receiver: connected`.
 | -------------- | ----------------------------- |
 | `fr24feed.ini` | FR24 configuration (no key)   |
 | `README.md`    | This file                     |
+| `LICENSE`    | LICENSE                     |
 
 ## Useful commands
 
