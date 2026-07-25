@@ -140,3 +140,10 @@ Runs as a VM on Proxmox with 1 core, 1 GB RAM, and 16 GB disk. The RTL2832U is U
 ---
 
 *Confirmed working on Proxmox 8.x with Debian 13 (Trixie) and RTL2832U (R820T tuner)*
+
+## Want a live display?
+
+Once this is feeding data, check out
+[github.com/Kgrande93/skywatch](https://github.com/Kgrande93/skywatch) — a
+small web page that shows the last aircraft your antenna picked up, built to
+run full-screen on a spare display.
