@@ -88,6 +88,45 @@ fr24feed-status
 
 Expected output: `FR24 Link: connected [UDP]` and `Receiver: connected`.
 
+8. (Optional but recommended) Give readsb its own aircraft database, so
+`aircraft.json` includes registration/type directly for every aircraft it
+knows about — richer and more complete than most free lookup APIs, with no
+extra network calls needed:
+
+```
+sudo wget -O /usr/local/share/tar1090/aircraft.csv.gz https://github.com/wiedehopf/tar1090-db/raw/csv/aircraft.csv.gz
+sudo nano /etc/default/readsb
+```
+
+Add `--db-file /usr/local/share/tar1090/aircraft.csv.gz` **inside** the
+`DECODER_OPTIONS` quotes, e.g.:
+
+```
+DECODER_OPTIONS="--max-range 450 --write-json-every 1 --db-file /usr/local/share/tar1090/aircraft.csv.gz"
+```
+
+> ⚠️ It must be inside the same quoted string as the other options. Putting
+> it outside the quotes (`DECODER_OPTIONS="..." --db-file ...`) means
+> systemd silently ignores it.
+
+Then restart:
+
+```
+sudo systemctl restart readsb
+```
+
+Verify it worked — aircraft entries should now include `r` (registration)
+and `t` (type) fields:
+
+```
+wget -qO- http://127.0.0.1/tar1090/data/aircraft.json | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+sample = [a for a in d['aircraft'] if 'r' in a or 't' in a][:3]
+print(json.dumps(sample, indent=2))
+"
+```
+
 ## Files
 
 | File           | Description                 |
