@@ -6,6 +6,16 @@ A self-hosted ADS-B receiver station that sends flight data to both
 FlightRadar24 and OpenSky Network via a single RTL2832U USB dongle
 connected to a Debian 13 VM on Proxmox.
 
+> **Why this isn't just "install fr24feed":** FR24's own installer bundles
+> its own copy of dump1090 as the decoder, and that bundled decoder does not
+> work on Debian 13 (Trixie). This setup installs
+> [readsb](https://github.com/wiedehopf/adsb-scripts) — a third-party,
+> actively maintained decoder — instead, and points fr24feed (and
+> opensky-feeder) at readsb's network Beast output rather than letting them
+> run their own decoders. This is the reason readsb is installed *before*
+> fr24feed in the steps below, and why fr24feed.ini must be edited afterward
+> to talk to readsb instead of using its own defaults.
+
 ---
 
 ## How it works
@@ -31,7 +41,7 @@ connected to a Debian 13 VM on Proxmox.
 
 ```
 sudo apt update && sudo apt upgrade -y
-sudo apt install qemu-guest-agent rtl-sdr git curl -y
+sudo apt install qemu-guest-agent rtl-sdr git curl wget -y
 sudo systemctl enable --now qemu-guest-agent
 sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
@@ -69,11 +79,47 @@ wget -qO- https://fr24.com/install.sh | sudo bash -s
 
 During installation: receiver type `1`, decoder arguments empty, RAW `no`, Basestation `no`, MLAT `yes`.
 
-5. Fill in the key in `fr24feed.ini` and copy it to `/etc/fr24feed.ini`:
+5. Point fr24feed at readsb and fill in your key. The FR24 installer leaves
+   `receiver="dvbt"` in `/etc/fr24feed.ini`, which tries to use its own
+   non-working decoder instead of readsb — this step replaces that file
+   with a working one. Clone this repo onto the VM if you haven't already
+   (it contains a ready-made `fr24feed.ini` template):
 
 ```
-sudo nano /etc/fr24feed.ini
+cd ~
+git clone https://github.com/Kgrande93/ads-b.git
+cd ads-b
+nano fr24feed.ini
 ```
+
+Fill in your key in place of `YOUR_KEY_HERE`. The file should read:
+
+```
+receiver="beast-tcp"
+fr24key="YOUR_KEY_HERE"
+host="127.0.0.1:30005"
+bs="no"
+raw="no"
+logmode="1"
+logpath="/var/log/fr24feed"
+mlat="yes"
+mlat-without-gps="yes"
+```
+
+> ⚠️ `host` is a single combined `"ip:port"` string — not separate `host`
+> and `port` lines. If `receiver` is still set to `"dvbt"`, fr24feed will
+> try to run its own dump1090 (which fails on Debian 13) instead of
+> connecting to readsb, and `fr24feed-status` will show `Receiver: down`.
+
+Then copy it into place:
+
+```
+sudo mkdir -p /var/log/fr24feed
+sudo cp fr24feed.ini /etc/fr24feed.ini
+```
+
+> Create `/var/log/fr24feed` first — fr24feed's logging fails silently
+> (empty/missing log file) if the directory doesn't already exist.
 
 6. Start the services:
 
@@ -89,6 +135,11 @@ fr24feed-status
 ```
 
 Expected output: `FR24 Link: connected [UDP]` and `Receiver: connected`.
+
+> After a reboot, fr24feed may start before readsb has finished binding
+> port 30005, leaving `Receiver: down` even though both services are
+> "running". Wait ~20-30s and re-run `fr24feed-status`, or if it's still
+> down, `sudo systemctl restart fr24feed`.
 
 ## Feeding OpenSky Network
 
@@ -130,6 +181,16 @@ sudo systemctl status opensky-feeder
 > ⚠️ Feeding actively (receiver online ≥30% of the current month) unlocks
 > 8,000 OpenSky API credits/day, versus 4,000 for a registered non-feeder
 > and 400 anonymous. Worth doing even beyond the FR24 feed.
+
+## (Optional but recommended) Signal graphs (graphs1090)
+
+Range and signal graphs for readsb, available at `http://<vm-ip>/graphs1090/`.
+This is a separate project from adsb-scripts, so it isn't included in the
+readsb install above:
+
+```
+sudo bash -c "$(curl -L -o - https://github.com/wiedehopf/graphs1090/raw/master/install.sh)"
+```
 
 ## (Optional but recommended) Aircraft database for readsb
 
