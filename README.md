@@ -106,7 +106,13 @@ sudo apt-get update
 sudo apt-get install opensky-feeder -y
 ```
 
-3. During setup, point it at readsb's Beast output on `127.0.0.1:30005` — same source fr24feed uses, not a second receiver.
+3. During setup you'll be prompted for several values:
+
+   - **Dump1090 branch:** `default` (only pick `hptoa` if you're running the openskynetwork/dump1090-hptoa fork — readsb/wiedehopf setups use `default`)
+   - **Beast port:** `30005`
+   - **Beast host:** `localhost` — readsb runs on this same VM, same source fr24feed already uses, not a second receiver
+   - **Position:** sent automatically from readsb's configured location (set earlier via `readsb-set-location`) — no manual lat/lon/altitude entry needed
+   - **Username:** your OpenSky Network account username only. No `client_id`/`client_secret` here — that OAuth2 pair is only needed for apps that *read* data from the OpenSky REST API (e.g. Skywatch), not for feeding.
 
 4. Enable and start:
 
